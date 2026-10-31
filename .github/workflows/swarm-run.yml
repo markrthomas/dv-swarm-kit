@@ -1,6 +1,6 @@
 # Reusable workflow: run the Claude Code agent swarm (docker/swarm.sh) of the CALLING repo inside that repo's
 # own Dockerfile `full` stage, built with the Claude Code CLI.  Called by each DV repo's
-# .github/workflows/swarm.yml (shipped by the kit):  uses: markrthomas/dv-swarm-kit/.github/workflows/swarm-run.yml@v1
+# .github/workflows/swarm.yml (shipped by the kit):  uses: markrthomas/dv-swarm-kit/.github/workflows/swarm-run.yml@v0
 #
 # Needs, in the CALLING repo: secret CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`; preferred) or
 # ANTHROPIC_API_KEY, passed with `secrets: inherit`.  The swarm pushes `swarm/<date>-<topic>` branches with the
