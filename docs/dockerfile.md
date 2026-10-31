@@ -7,7 +7,7 @@ Every DV repo's root `Dockerfile` must provide:
    ```dockerfile
    ARG WITH_CLAUDE=0
    RUN if [ "$WITH_CLAUDE" = "1" ]; then \
-         apt-get update && apt-get install -y --no-install-recommends nodejs npm \
+         apt-get update && apt-get install -y --no-install-recommends nodejs npm gh \
          && npm install -g @anthropic-ai/claude-code && rm -rf /var/lib/apt/lists/*; \
        fi
    ```
@@ -24,6 +24,11 @@ Every DV repo's root `Dockerfile` must provide:
    ```
    The repo may live at another path (e.g. `WORKDIR /work`); the entrypoint uses the checkout it sits in, or a
    checkout mounted at `/repo` (the swarm workflow mounts one there so the swarm can push).
-3. `git`, `make`, `python3` and `bash` in `tools` (the kit scripts need them).
+3. `git`, `make`, `python3` and `bash` in `tools` (the kit scripts need them); `gh` comes with `WITH_CLAUDE=1` so a
+   swarm can open its draft PR.
+
+A repo that keeps its own tuned entrypoint lists `docker/entrypoint.sh` in `KIT_KEEP`; its Dockerfile then only needs
+the `tools` stage + `WITH_CLAUDE` for the devcontainer and swarm, and its own ENTRYPOINT must pass `swarm` to
+`docker/swarm.sh`.
 
 `sync.sh` checks these and warns; it never edits a Dockerfile. Reference: `markrthomas/eth-dj-to-pcie-pipe-bridge`.

@@ -19,6 +19,10 @@ on:
         description: "model for the manager agent (empty = CLI default)"
         type: string
         default: ""
+      provider:
+        description: "anthropic (default) | kimi (see docker/provider-env.sh)"
+        type: string
+        default: "anthropic"
       timeout-minutes:
         type: number
         default: 120
@@ -26,6 +30,10 @@ on:
       CLAUDE_CODE_OAUTH_TOKEN:
         required: false
       ANTHROPIC_API_KEY:
+        required: false
+      KIMI_API_KEY:
+        required: false
+      SWARM_GITHUB_TOKEN:
         required: false
 
 jobs:
@@ -41,7 +49,11 @@ jobs:
         env:
           OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: test -n "$OAUTH$KEY" || { echo "::error::set the CLAUDE_CODE_OAUTH_TOKEN (or ANTHROPIC_API_KEY) repository secret"; exit 1; }
+          KIMI: ${{ secrets.KIMI_API_KEY }}
+          PROVIDER: ${{ inputs.provider }}
+        run: |
+          if [ "$PROVIDER" = kimi ]; then test -n "$KIMI" || { echo "::error::provider kimi needs the KIMI_API_KEY secret"; exit 1; }
+          else test -n "$OAUTH$KEY" || { echo "::error::set the CLAUDE_CODE_OAUTH_TOKEN (or ANTHROPIC_API_KEY) repository secret"; exit 1; }; fi
       - name: require the swarm kit
         run: |
           test -f .claude/swarm.env || { echo "::error::.claude/swarm.env missing - run dv-swarm-kit/sync.sh on this repo"; exit 1; }
@@ -52,11 +64,13 @@ jobs:
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ github.token }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          SWARM_MODEL_PROVIDER: ${{ inputs.provider }}
+          GITHUB_TOKEN: ${{ secrets.SWARM_GITHUB_TOKEN || github.token }}
           TASK: ${{ inputs.task }}
           MODEL: ${{ inputs.model }}
         run: |
-          docker run --rm -e CLAUDE_CODE_OAUTH_TOKEN -e ANTHROPIC_API_KEY -e GITHUB_TOKEN -v "$PWD:/repo" dv-swarm \
+          docker run --rm -e CLAUDE_CODE_OAUTH_TOKEN -e ANTHROPIC_API_KEY -e KIMI_API_KEY -e SWARM_MODEL_PROVIDER -e GITHUB_TOKEN -v "$PWD:/repo" dv-swarm \
             swarm --task "$TASK" ${MODEL:+--model "$MODEL"}
       - uses: actions/upload-artifact@v4
         if: always()
