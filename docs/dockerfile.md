@@ -19,7 +19,11 @@ Every DV repo's root `Dockerfile` must provide:
    COPY . /repo
    RUN chmod +x docker/*.sh
    ENTRYPOINT ["/repo/docker/entrypoint.sh"]
+   # optional: keep the old default for plain `docker run <img>`; the entrypoint execs any command it is given
+   # CMD ["make", "check"]
    ```
+   The repo may live at another path (e.g. `WORKDIR /work`); the entrypoint uses the checkout it sits in, or a
+   checkout mounted at `/repo` (the swarm workflow mounts one there so the swarm can push).
 3. `git`, `make`, `python3` and `bash` in `tools` (the kit scripts need them).
 
 `sync.sh` checks these and warns; it never edits a Dockerfile. Reference: `markrthomas/eth-dj-to-pcie-pipe-bridge`.
