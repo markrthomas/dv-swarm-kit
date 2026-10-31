@@ -11,6 +11,7 @@
 #   - .gitignore             $RR_DIR/runs/ and docker/last-run-metrics.json ignored
 #   - .claude/swarm-kit.version  the kit version installed
 #   - Dockerfile             checked (not edited): needs stages `tools` and `full` (last), ARG WITH_CLAUDE
+#   - .gitignore must not hide kit files (fails if it does: a blanket `.claude/` rule would drop the agents)
 # It does not commit, push or touch RTL. --check: report drift only, change nothing (exit 1 on drift).
 set -euo pipefail
 KIT="$(cd "$(dirname "$0")" && pwd)"
@@ -84,5 +85,14 @@ else
   echo "$last" | grep -qiE ' AS full\b' || warn "Dockerfile: last stage is not 'full' (Railway builds the last stage): $last"
   grep -q 'WITH_CLAUDE' "$df" || warn "Dockerfile: no ARG WITH_CLAUDE (Claude Code CLI for swarm runs)"
   grep -q 'docker/entrypoint.sh' "$df" || warn "Dockerfile: ENTRYPOINT is not docker/entrypoint.sh"
+fi
+
+# 8. files the repo's .gitignore would silently drop (e.g. a blanket `.claude/` rule) - fatal, or the commit is incomplete
+ignored="$(cd "$repo" && { (cd "$KIT/kit" && find . -type f | sed 's#^\./##'); echo .claude/swarm.env; echo .claude/swarm-kit.version; } \
+           | git check-ignore --no-index --stdin 2>/dev/null || true)"
+if [ -n "$ignored" ]; then
+  warn "these kit files are git-ignored in the repo and would not be committed - narrow the .gitignore rule:"
+  echo "$ignored" | sed 's/^/    /' >&2
+  exit 1
 fi
 echo "sync: kit $ver installed in $repo"
