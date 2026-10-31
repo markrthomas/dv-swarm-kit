@@ -12,7 +12,7 @@ Canonical origin: the swarm built in `markrthomas/eth-dj-to-pcie-pipe-bridge` (O
 | `kit/` | files copied verbatim into every DV repo (kit-owned: change them here, never in a repo) |
 | `templates/swarm.env.example` | the per-repo profile; `sync.sh` creates it once, the repo owns it after that |
 | `templates/CLAUDE-swarm.md` | the block `sync.sh` keeps current inside each repo's `CLAUDE.md` |
-| `.github/workflows/swarm-run.yml` | reusable workflow every repo's `swarm.yml` calls (`@v1`) |
+| `.github/workflows/swarm-run.yml` | reusable workflow every repo's `swarm.yml` calls (`@v0`) |
 | `sync.sh` | install / update / `--check` drift in a repo checkout |
 | `docs/` | tokens + secrets setup, Dockerfile contract |
 
@@ -33,7 +33,7 @@ git clone https://github.com/markrthomas/dv-swarm-kit
 Then in the repo: fill in `.claude/swarm.env`, make the Dockerfile meet `docs/dockerfile.md`, `make swarm-kit-check`,
 `make swarm-dry`, commit on a `swarm/` branch, open a PR.
 
-Changing the kit: edit `kit/`, bump the tag (`v1.x`; move `v1` for compatible changes since repos call
-`swarm-run.yml@v1`), then `sync.sh` each repo and open PRs.
+Changing the kit: edit `kit/`, merge, tag `v0.N.0` and move `v0` (`git tag -f v0 && git push -f origin v0`; repos call
+`swarm-run.yml@v0`), then `sync.sh` each repo and open PRs. `v0` = still settling; `v1` once the rollout is proven.
 
 Credentials: see [`docs/tokens.md`](docs/tokens.md). Nothing secret is ever stored in this repo or in a DV repo.
