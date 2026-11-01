@@ -3,8 +3,9 @@
 # .github/workflows/swarm.yml (shipped by the kit):  uses: markrthomas/dv-swarm-kit/.github/workflows/swarm-run.yml@v0
 #
 # Needs, in the CALLING repo: secret CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`; preferred) or
-# ANTHROPIC_API_KEY, passed with `secrets: inherit`.  The swarm pushes `swarm/<date>-<topic>` branches with the
-# job's GITHUB_TOKEN; a human reviews and merges.  If dv-swarm-kit is private, enable
+# ANTHROPIC_API_KEY, passed explicitly by the caller (see kit/.github/workflows/swarm.yml).  The swarm pushes `swarm/<date>-<topic>` branches with the
+# job's GITHUB_TOKEN; a human reviews and merges.  Callers pass the secrets explicitly (not `secrets: inherit`,
+# which does not cross repos outside an organization).  If dv-swarm-kit is private, enable
 # Settings -> Actions -> General -> Access -> "Accessible from repositories owned by the user" on dv-swarm-kit.
 name: swarm-run
 
