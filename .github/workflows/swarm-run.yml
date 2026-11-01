@@ -3,8 +3,9 @@
 # .github/workflows/swarm.yml (shipped by the kit):  uses: markrthomas/dv-swarm-kit/.github/workflows/swarm-run.yml@v0
 #
 # Needs, in the CALLING repo: secret CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`; preferred) or
-# ANTHROPIC_API_KEY, passed with `secrets: inherit`.  The swarm pushes `swarm/<date>-<topic>` branches with the
-# job's GITHUB_TOKEN; a human reviews and merges.  If dv-swarm-kit is private, enable
+# ANTHROPIC_API_KEY, passed explicitly by the caller (see kit/.github/workflows/swarm.yml).  The swarm pushes `swarm/<date>-<topic>` branches with the
+# job's GITHUB_TOKEN; a human reviews and merges.  Callers pass the secrets explicitly (not `secrets: inherit`,
+# which does not cross repos outside an organization).  If dv-swarm-kit is private, enable
 # Settings -> Actions -> General -> Access -> "Accessible from repositories owned by the user" on dv-swarm-kit.
 name: swarm-run
 
@@ -70,7 +71,7 @@ jobs:
           TASK: ${{ inputs.task }}
           MODEL: ${{ inputs.model }}
         run: |
-          docker run --rm -e CLAUDE_CODE_OAUTH_TOKEN -e ANTHROPIC_API_KEY -e KIMI_API_KEY -e SWARM_MODEL_PROVIDER -e GITHUB_TOKEN -v "$PWD:/repo" dv-swarm \
+          docker run --rm -e CLAUDE_CODE_OAUTH_TOKEN -e ANTHROPIC_API_KEY -e KIMI_API_KEY -e SWARM_MODEL_PROVIDER -e GITHUB_TOKEN -e GITHUB_REF_NAME -e GITHUB_HEAD_REF -v "$PWD:/repo" dv-swarm \
             swarm --task "$TASK" ${MODEL:+--model "$MODEL"}
       - uses: actions/upload-artifact@v4
         if: always()
