@@ -10,6 +10,7 @@
 #   - Makefile               `include swarm.mk` appended if absent; fails if the Makefile defines a kit target
 #   - .gitignore             $RR_DIR/runs/ and docker/last-run-metrics.json ignored
 #   - .claude/swarm-kit.version  the kit version installed
+#   - KIT_KEEP (in .claude/swarm.env): repo-owned paths the kit never overwrites (e.g. a tuned docker/entrypoint.sh)
 #   - Dockerfile             checked (not edited): needs stages `tools` and `full` (last), ARG WITH_CLAUDE
 #   - .gitignore must not hide kit files (fails if it does: a blanket `.claude/` rule would drop the agents)
 # It does not commit, push or touch RTL. --check: report drift only, change nothing (exit 1 on drift).
@@ -23,9 +24,16 @@ ver="$(git -C "$KIT" describe --tags --match 'v*.*.*' --always --dirty 2>/dev/nu
 KIT_TARGETS="heavy board board-wait swarm swarm-rr swarm-dry swarm-profile swarm-kit-check batch"
 drift=0; warn(){ echo "sync: $*" >&2; }
 
+# repo-owned files the kit must not overwrite (KIT_KEEP in .claude/swarm.env, space separated, repo-relative)
+keep=" $(grep -E '^KIT_KEEP=' "$repo/.claude/swarm.env" 2>/dev/null | head -1 | sed -E 's/^KIT_KEEP=//; s/[[:space:]]*#.*$//; s/^"//; s/"$//' || true) "
+
 # 1. kit-owned files
 while IFS= read -r -d '' f; do
   rel="${f#"$KIT/kit/"}"
+  if [[ "$keep" == *" $rel "* ]]; then
+    [ "$check" = 1 ] || echo "sync: keeping repo-owned $rel (KIT_KEEP)"
+    continue
+  fi
   if [ "$check" = 1 ]; then
     cmp -s "$f" "$repo/$rel" || { warn "drift: $rel"; drift=1; }
   else
@@ -84,11 +92,11 @@ else
   last="$(grep -iE '^FROM ' "$df" | tail -1)"
   echo "$last" | grep -qiE ' AS full\b' || warn "Dockerfile: last stage is not 'full' (Railway builds the last stage): $last"
   grep -q 'WITH_CLAUDE' "$df" || warn "Dockerfile: no ARG WITH_CLAUDE (Claude Code CLI for swarm runs)"
-  grep -q 'docker/entrypoint.sh' "$df" || warn "Dockerfile: ENTRYPOINT is not docker/entrypoint.sh"
+  [[ "$keep" == *" docker/entrypoint.sh "* ]] || grep -q 'docker/entrypoint.sh' "$df" || warn "Dockerfile: ENTRYPOINT is not docker/entrypoint.sh"
 fi
 
 # 8. files the repo's .gitignore would silently drop (e.g. a blanket `.claude/` rule) - fatal, or the commit is incomplete
-ignored="$(cd "$repo" && { (cd "$KIT/kit" && find . -type f | sed 's#^\./##'); echo .claude/swarm.env; echo .claude/swarm-kit.version; } \
+ignored="$(cd "$repo" && { (cd "$KIT/kit" && find . -type f | sed 's#^\./##') | while read -r r; do [[ "$keep" == *" $r "* ]] || echo "$r"; done; echo .claude/swarm.env; echo .claude/swarm-kit.version; } \
            | git check-ignore --no-index --stdin 2>/dev/null || true)"
 if [ -n "$ignored" ]; then
   warn "these kit files are git-ignored in the repo and would not be committed - narrow the .gitignore rule:"
