@@ -22,6 +22,19 @@ unset TOK
 ```
 (`dv-repos.txt`: one repo name per line — the repos `sync.sh` has been run on.)
 
+## Letting the swarm open its draft PR (Actions)
+At the end of a run `docker/swarm.sh` opens a **draft** PR from the run's `swarm/*` branch (the manager's report is the
+description; never merged by the swarm; `SWARM_OPEN_PR=0` turns it off). In Actions the job's `GITHUB_TOKEN` may
+only open PRs if the repo allows it — once per repo, no token involved:
+```bash
+for r in $(cat dv-repos.txt); do
+  gh api -X PUT "repos/markrthomas/$r/actions/permissions/workflow" \
+    -F can_approve_pull_request_reviews=true; done   # leaves the default workflow permissions as they are
+```
+(UI: Settings → Actions → General → *Allow GitHub Actions to create and approve pull requests*.) Without it the run
+still pushes its branch and prints the compare link to open the PR by hand. The swarm workflow asks for
+`contents: write` + `pull-requests: write` itself, so no other workflow's permissions need to change.
+
 ## After a provider security incident (e.g. Railway, 2026)
 1. GitHub → Settings → Applications: review **Installed GitHub Apps** and **Authorized OAuth Apps**; remove the old
    Railway grants. Developer settings → tokens: delete any PAT that was given to the provider.
