@@ -6,11 +6,15 @@ Every DV repo's root `Dockerfile` must provide:
    devcontainer can mount the repo live. It must honour `ARG WITH_CLAUDE=0`:
    ```dockerfile
    ARG WITH_CLAUDE=0
+   ARG CLAUDE_CODE_VERSION=2.1.322
    RUN if [ "$WITH_CLAUDE" = "1" ]; then \
          apt-get update && apt-get install -y --no-install-recommends nodejs npm gh \
-         && npm install -g @anthropic-ai/claude-code && rm -rf /var/lib/apt/lists/*; \
+         && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} && rm -rf /var/lib/apt/lists/*; \
        fi
    ```
+   **Pin everything the image downloads** (supply chain: the image runs with the swarm's tokens): a tag or commit for
+   every `git clone` (`VERILATOR_REF`, `YOSYS_REF`, `SBY_REF` - a commit, never `main`), an exact version for every
+   `npm install -g` / `pip install`, a version for every release download.  Bump them on purpose, in a PR.
 2. A **last** stage named **`full`** (Railway builds the last stage; the swarm workflow builds `--target full`):
    ```dockerfile
    FROM tools AS full

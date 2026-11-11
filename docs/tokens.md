@@ -43,3 +43,16 @@ still pushes its branch and prints the compare link to open the PR by hand. The 
 4. Protect `main` in each repo (branch ruleset: no direct pushes, no force-push, no deletion) so no token can write it;
    the kit only ever pushes `swarm/*` and `metrics-data`.
 5. Rotate on a schedule (90 days) and whenever a token may have been exposed.
+
+## Hardening checklist (repos that run on Railway)
+- Railway: seal `GITHUB_TOKEN` (Variables -> ⋮ -> Seal), or keep it as one sealed shared variable referenced as
+  `${{shared.GITHUB_TOKEN}}`; deploy only from the default branch with **PR environments off**; 2FA on; no other
+  workspace members. Never put `CLAUDE_CODE_OAUTH_TOKEN` on Railway - the swarm runs in Actions.
+- The Railway GitHub token: fine-grained, only the Railway repos, **Contents: read and write** and nothing else (no
+  Workflows permission, so it cannot change `.github/workflows` or reach the Actions secrets), 30-90 day expiry.
+- The Railway GitHub app: Only select repositories, the Railway repos only.
+- Every repo: `protect-default-branch` ruleset (main only through a PR); dv-swarm-kit also `protect-release-tags`
+  (every repo runs `swarm-run.yml@v0`).
+- Public repos: secret scanning + push protection on; Actions fork-PR workflows "Require approval for all external
+  contributors".
+- Images: everything downloaded is pinned (see docs/dockerfile.md); kit workflows pin actions by commit SHA.
