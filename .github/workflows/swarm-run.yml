@@ -45,7 +45,7 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: require a credential
         env:
           OAUTH: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -76,7 +76,7 @@ jobs:
           docker run --rm -e CLAUDE_CODE_OAUTH_TOKEN -e ANTHROPIC_API_KEY -e KIMI_API_KEY -e SWARM_MODEL_PROVIDER -e GITHUB_TOKEN \
             -e GITHUB_REF_NAME -e GITHUB_HEAD_REF -e GITHUB_RUN_ID -e GH_REPO -v "$PWD:/repo" dv-swarm \
             swarm --task "$TASK" ${MODEL:+--model "$MODEL"}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: swarm-metrics
