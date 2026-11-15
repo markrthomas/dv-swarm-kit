@@ -55,4 +55,5 @@ still pushes its branch and prints the compare link to open the PR by hand. The 
   (every repo runs `swarm-run.yml@v0`).
 - Public repos: secret scanning + push protection on; Actions fork-PR workflows "Require approval for all external
   contributors".
+- Railway runs on demand only (no cron; `watchPatterns` skip docs-only pushes) - nothing runs unattended.
 - Images: everything downloaded is pinned (see docs/dockerfile.md); kit workflows pin actions by commit SHA.
