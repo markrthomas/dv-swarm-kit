@@ -36,3 +36,30 @@ the `tools` stage + `WITH_CLAUDE` for the devcontainer and swarm, and its own EN
 `docker/swarm.sh`.
 
 `sync.sh` checks these and warns; it never edits a Dockerfile. Reference: `markrthomas/eth-dj-to-pcie-pipe-bridge`.
+
+## Railway: prebuilt toolchain image (v0.3.10)
+Railway stops any build after ~40 minutes, and compiling Verilator / Yosys(+slang) / SymbiYosys from source can exceed
+that whenever its layer cache misses. So Railway never compiles: `railway.toml` builds `docker/Dockerfile.railway`,
+which starts `FROM ghcr.io/<owner>/<repo>/dv-tools:tools-main` and only adds the repo. Three pieces:
+
+1. **`docker/Dockerfile.railway`** - seeded by `sync.sh` from `templates/Dockerfile.railway` (image name from `GH_REPO`,
+   workdir from the Dockerfile's last `WORKDIR`), then repo-owned. Copy in any `ENV` / `RUN` from the Dockerfile's final
+   stage that the batch needs (e.g. `ICARUS_BIN_DIR`, `VL_JOBS`, `chmod` of scripts); leave out what only the swarm
+   needs (Node, Claude Code, gh).
+2. **CI publishes `tools-main`** - the Dockerfile `tools` stage (toolchain only, **no repo source**) pushed to GHCR and
+   re-tagged on pushes to main. With a content-addressed CI image (`dv-tools:tools-<hash>`), add after the push step:
+   ```yaml
+         - name: Tag the toolchain as tools-main (main only)
+           if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+           run: |
+             set -euo pipefail
+             img="${{ steps.meta.outputs.image }}"      # the job's tools-<hash> image
+             docker buildx imagetools create -t "${img%:*}:tools-main" "$img"
+   ```
+   Without one, build and push it: `docker build --target tools -t ghcr.io/${GITHUB_REPOSITORY,,}/dv-tools:tools-main .`
+3. **The package is public** (GitHub -> Packages -> dv-tools -> Package settings -> Change visibility). Railway cannot
+   pull a private base image during a build (Railway staff: "not supported"); private-image deploys need Railway Pro.
+   Public is safe only because the `tools` stage holds no repo source - never publish a stage that does `COPY . ...`.
+
+Order for a new Railway repo: merge -> CI green (tools-main exists) -> package public -> Redeploy. The deploy the merge
+triggers fails with "not found" until then - expected. Proven 2026-11-16/17 on eth-dj, pcie, ucie2 and axi.

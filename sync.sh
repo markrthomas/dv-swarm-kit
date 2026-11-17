@@ -6,6 +6,7 @@
 # Copies every file under kit/ into the repo (kit-owned files are overwritten; anything else, e.g. a repo-only
 # extra agent, is left alone), then:
 #   - .claude/swarm.env      created from templates/swarm.env.example if missing (never overwritten - fill it in)
+#   - docker/Dockerfile.railway  created from templates/Dockerfile.railway if missing (never overwritten)
 #   - CLAUDE.md              the <!-- swarm-kit:begin/end --> block replaced (appended if absent)
 #   - Makefile               `include swarm.mk` appended if absent; fails if the Makefile defines a kit target
 #   - .gitignore             $RR_DIR/runs/ and docker/last-run-metrics.json ignored
@@ -53,6 +54,16 @@ if [ ! -f "$repo/.claude/swarm.env" ]; then
   warn "created .claude/swarm.env from the template - FILL IT IN before running a swarm"
 fi
 rr_dir="$(cd "$repo" && bash -c '. docker/profile.sh >/dev/null; echo "${RR_DIR:-dv/random}"')"
+# 2b. Railway image: docker/Dockerfile.railway is seeded once (repo-owned afterwards - final stages differ per repo)
+if [ ! -f "$repo/docker/Dockerfile.railway" ]; then
+  ghr="$(cd "$repo" && bash -c '. docker/profile.sh >/dev/null; echo "${GH_REPO:-}"' | tr '[:upper:]' '[:lower:]')"
+  wd="$(grep -E '^[[:space:]]*WORKDIR[[:space:]]' "$repo/Dockerfile" 2>/dev/null | tail -1 | awk '{print $2}')"
+  sed -e "s#@GH_REPO@#${ghr:-OWNER/REPO}#g" -e "s#@WORKDIR@#${wd:-/repo}#g" "$KIT/templates/Dockerfile.railway" \
+    > "$repo/docker/Dockerfile.railway"
+  warn "created docker/Dockerfile.railway (image ghcr.io/${ghr:-OWNER/REPO}/dv-tools:tools-main, workdir ${wd:-/repo}) -"
+  warn "  before deploying on Railway: compare it with the Dockerfile's final stage, publish tools-main from CI, make it public"
+fi
+
 
 # 3. CLAUDE.md block
 python3 - "$repo/CLAUDE.md" "$KIT/templates/CLAUDE-swarm.md" <<'PY'
