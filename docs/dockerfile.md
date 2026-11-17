@@ -57,7 +57,16 @@ which starts `FROM ghcr.io/<owner>/<repo>/dv-tools:tools-main` and only adds the
              docker buildx imagetools create -t "${img%:*}:tools-main" "$img"
    ```
    Without one, build and push it: `docker build --target tools -t ghcr.io/${GITHUB_REPOSITORY,,}/dv-tools:tools-main .`
-3. **The package is public** (GitHub -> Packages -> dv-tools -> Package settings -> Change visibility). Railway cannot
+3. **The package is public** (GitHub -> Packages -> dv-tools -> Package settings -> Change visibility). In Package
+   settings, first **untick "Inherit access from source repository"**: otherwise a package pushed from a private repo
+   follows the repo and goes (back) to private, and Railway's pull fails with `403 Forbidden`. Check from anywhere,
+   without logging in (200 = public):
+   ```bash
+   r=<repo>; t=$(curl -s "https://ghcr.io/token?scope=repository:markrthomas/$r/dv-tools:pull" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+   curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $t" \
+     -H "Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.v2+json" \
+     "https://ghcr.io/v2/markrthomas/$r/dv-tools/manifests/tools-main"
+   ``` Railway cannot
    pull a private base image during a build (Railway staff: "not supported"); private-image deploys need Railway Pro.
    Public is safe only because the `tools` stage holds no repo source - never publish a stage that does `COPY . ...`.
 
