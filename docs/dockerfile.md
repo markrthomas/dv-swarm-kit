@@ -7,9 +7,16 @@ Every DV repo's root `Dockerfile` must provide:
    ```dockerfile
    ARG WITH_CLAUDE=0
    ARG CLAUDE_CODE_VERSION=2.1.322
+   ARG NODE_MAJOR=22          # Claude Code needs Node >= 22; Ubuntu's nodejs is 18 - use NodeSource's signed apt repo
    RUN if [ "$WITH_CLAUDE" = "1" ]; then \
-         apt-get update && apt-get install -y --no-install-recommends nodejs npm gh \
-         && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} && rm -rf /var/lib/apt/lists/*; \
+         apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg gh \
+         && install -d -m 0755 /etc/apt/keyrings \
+         && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
+         && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" \
+              > /etc/apt/sources.list.d/nodesource.list \
+         && apt-get update && apt-get install -y --no-install-recommends nodejs \
+         && npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
+         && claude --version && rm -rf /var/lib/apt/lists/*; \
        fi
    ```
    **Pin everything the image downloads** (supply chain: the image runs with the swarm's tokens): a tag or commit for
