@@ -35,11 +35,14 @@ some blocks, controlled interface specs) — authored here, run where that acces
 | axi4_to_dfi_ddr | ✅ | ✅ (AXI↔DFI) | ✅ | ✅ |
 | IP-axi-to-2apbs | ✅ (`make syn`) | n/a (single clk) | ✅ | ✅ |
 | tilelink_to_AXI4 | ✅ (`make syn`, gen SV) | n/a (single clk) | ✅ | ✅ |
-| ucie_rdi_to_pcie6_pipe7 | ⚠ T1 open¹ | formal (cdc_mc) | ✅ | ✅ |
+| ucie_rdi_to_pcie6_pipe7 | ✅ (slang) | formal (cdc_mc) | ✅ | ✅ |
 
-¹ `make synth` exists (slang frontend) but the full top does not yet elaborate under
-yosys-slang — T1 is tracked **OPEN** in that repo's `syn/SIGNOFF.md`; no CI gate is wired
-until it elaborates (wiring it green would fake it).
+> Note: the `synth.sh` here passes the source list to `read_slang` as **one
+> space-joined token** — a newline-separated list (`$(ls …)`) is split by the yosys
+> `-p` parser (newlines separate commands), leaving `read_slang` with only the first
+> file and a spurious "`<top>` is not a valid top-level module". The template also
+> auto-detects slang whether **integrated** (Yosys ≥ 0.67 native `read_slang`) or a
+> **plugin**. Both behaviours are built into `templates/signoff/synth.sh`.
 
 > Not yet wired into `sync.sh` automated vendoring — a deliberate later rollout, after the
 > five pilot repos' sign-off PRs land.
