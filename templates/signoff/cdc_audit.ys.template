@@ -1,0 +1,18 @@
+# cdc_audit.ys (TEMPLATE) — structural CDC audit for a MULTI-CLOCK design.
+# Replace <SRCS>, <SYNCHRONIZERS> (sanctioned synchronizer module names), <TOP>,
+# and the two clock nets <CLKA>/<CLKB>. Fails (non-zero) on any crossing that bypasses
+# a sanctioned synchronizer. Single-clock designs omit this (T1-CDC = n/a).
+read_verilog -Isrc <SRCS>
+blackbox <SYNCHRONIZERS>
+hierarchy -top <TOP>
+proc
+flatten
+opt_clean
+select -set ffs  t:$adff* t:$dff* t:$dffe* t:$sdff* t:$dlatch*
+select -set aff  n:<CLKA> %co @ffs %i
+select -set bff  n:<CLKB> %co @ffs %i
+select -set xing_a2b @bff %ci*:<SYNC_EXCLUDES> @aff %i
+select -set xing_b2a @aff %ci*:<SYNC_EXCLUDES> @bff %i
+select -assert-count 0 @xing_a2b
+select -assert-count 0 @xing_b2a
+log CDC-AUDIT: no unsynchronized clock-domain crossings.
