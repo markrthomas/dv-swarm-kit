@@ -12,6 +12,7 @@ Canonical origin: the swarm built in `markrthomas/eth-dj-to-pcie-pipe-bridge` (O
 | `kit/` | files copied verbatim into every DV repo (kit-owned: change them here, never in a repo) |
 | `templates/swarm.env.example` | the per-repo profile; `sync.sh` creates it once, the repo owns it after that |
 | `templates/CLAUDE-swarm.md` | the block `sync.sh` keeps current inside each repo's `CLAUDE.md` |
+| `templates/signoff/` | canonical tapeout sign-off flow (T1 synth / CDC / SDC / STA / SIGNOFF); adopt-once reference, not auto-vendored — see its README |
 | `.github/workflows/swarm-run.yml` | reusable workflow every repo's `swarm.yml` calls (`@v0`) |
 | `sync.sh` | install / update / `--check` drift in a repo checkout |
 | `docs/` | tokens + secrets setup, Dockerfile contract |
