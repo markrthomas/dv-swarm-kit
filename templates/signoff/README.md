@@ -21,6 +21,14 @@ criterion to T5, not the finish line. A gate passes only with a real **artifact*
   designs: no crossing bypasses a sanctioned synchronizer. Single-clock → T1-CDC = n/a.
 - **`syn/constraints/*.sdc`** — clocks/groups, exceptions, I/O budgets (T2 collateral).
 - **`syn/sta/opensta.tcl`** — STA driver (OpenSTA pathfind / PrimeTime sign-off; needs-pdk).
+- **`make lp`** — T3 low-power UPF **consistency** lint (`lp/upf_lint.tcl` on the repo's
+  `*.upf`): no OSS tool models UPF semantics, so this catches a malformed/inconsistent UPF
+  (dangling domains/supplies/strategies/PST) before `VCS -upf` (needs-license). Template
+  UPF (`lp/example.upf`) + `lp/LP_PLAN.md` here.
+- **`make dft`** — T4 DFT **scan-readiness** audit (`dft/scan_readiness.sh`) on the
+  synthesized netlist: HARD latch-free + no combinational loops, plus a scan-planning
+  inventory (flop/scan-chain count, reset controllability, async set/reset, RAM/MBIST).
+  Set `TOPS`/`RTL`/`FRONTEND`. Scan insertion + ATPG = needs-license (`dft/DFT_PLAN.md`).
 - **`syn/SIGNOFF.md`** — the per-repo T0–T7 checklist (`SIGNOFF.md` template here).
 
 ## Tooling reality
@@ -29,13 +37,18 @@ STA, DFT/ATPG, power-aware UPF, GLS/PPA need commercial tools + a foundry PDK (a
 some blocks, controlled interface specs) — authored here, run where that access exists.
 
 ## Adoption status (2026-11-24)
-| repo | make synth | make cdc | SDC | SIGNOFF |
-|------|:--:|:--:|:--:|:--:|
-| cxl_lpddr5x_bridge | ✅ (origin) | ✅ | ✅ | ✅ |
-| axi4_to_dfi_ddr | ✅ | ✅ (AXI↔DFI) | ✅ | ✅ |
-| IP-axi-to-2apbs | ✅ (`make syn`) | n/a (single clk) | ✅ | ✅ |
-| tilelink_to_AXI4 | ✅ (`make syn`, gen SV) | n/a (single clk) | ✅ | ✅ |
-| ucie_rdi_to_pcie6_pipe7 | ✅ (slang) | formal (cdc_mc) | ✅ | ✅ |
+| repo | make synth | make cdc | SDC | make lp (T3) | make dft (T4) | SIGNOFF |
+|------|:--:|:--:|:--:|:--:|:--:|:--:|
+| cxl_lpddr5x_bridge | ✅ (origin) | ✅ | ✅ | ☐ | ☐ | ✅ |
+| axi4_to_dfi_ddr | ✅ | ✅ (AXI↔DFI) | ✅ | ☐ | ☐ | ✅ |
+| IP-axi-to-2apbs | ✅ (`make syn`) | n/a (single clk) | ✅ | ✅ (template) | ✅ (template) | ✅ |
+| tilelink_to_AXI4 | ✅ (`make syn`, gen SV) | n/a (single clk) | ✅ | ☐ | ☐ | ✅ |
+| ucie_rdi_to_pcie6_pipe7 | ✅ (slang) | formal (cdc_mc) | ✅ | ◑ (test/upf) | ☐ | ✅ |
+
+> T3/T4 pathfound on **IP-axi-to-2apbs** (`syn/lp/`, `syn/dft/`) and promoted here as the
+> templates; #5 already has authored UPF (`test/upf/`). Rollout to #1/#2/#4 + #5's DFT is
+> the next step. `make lp`/`make dft` are OSS-runnable; the `-upf` sim, scan insertion and
+> ATPG are needs-license.
 
 > Note: the `synth.sh` here passes the source list to `read_slang` as **one
 > space-joined token** — a newline-separated list (`$(ls …)`) is split by the yosys
