@@ -28,14 +28,18 @@ Yosys/sby/verilator pathfind T1 (and T2/T6 on an open PDK). Liberty-mapped synth
 STA, DFT/ATPG, power-aware UPF, GLS/PPA need commercial tools + a foundry PDK (and, for
 some blocks, controlled interface specs) — authored here, run where that access exists.
 
-## Adoption status (2026-11-23)
+## Adoption status (2026-11-24)
 | repo | make synth | make cdc | SDC | SIGNOFF |
 |------|:--:|:--:|:--:|:--:|
 | cxl_lpddr5x_bridge | ✅ (origin) | ✅ | ✅ | ✅ |
 | axi4_to_dfi_ddr | ✅ | ✅ (AXI↔DFI) | ✅ | ✅ |
 | IP-axi-to-2apbs | ✅ (`make syn`) | n/a (single clk) | ✅ | ✅ |
 | tilelink_to_AXI4 | ✅ (`make syn`, gen SV) | n/a (single clk) | ✅ | ✅ |
-| ucie_rdi_to_pcie6_pipe7 | ✅ (slang) | formal (cdc_mc) | ✅ | ✅ |
+| ucie_rdi_to_pcie6_pipe7 | ⚠ T1 open¹ | formal (cdc_mc) | ✅ | ✅ |
+
+¹ `make synth` exists (slang frontend) but the full top does not yet elaborate under
+yosys-slang — T1 is tracked **OPEN** in that repo's `syn/SIGNOFF.md`; no CI gate is wired
+until it elaborates (wiring it green would fake it).
 
 > Not yet wired into `sync.sh` automated vendoring — a deliberate later rollout, after the
 > five pilot repos' sign-off PRs land.
