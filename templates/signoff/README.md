@@ -146,7 +146,7 @@ some blocks, controlled interface specs) — authored here, run where that acces
 | repo | `make pkg-xsd` | `make release` + `release.yml` | `make pnr` (sky130) | post-route GLS |
 |------|:--:|:--:|:--:|:--:|
 | IP-axi-to-2apbs (pathfinder) | ✅ | ✅ **v1.0.0** released by CI | ✅ 2 tops, DRC/LVS clean, hold met, setup NOT MET @200 MHz (Fmax tt 189/181) | ✅ directed + compliance |
-| axi4_to_dfi_ddr (#26) | ✅ | ✅ dry run; publish blocked until T0 | ✅ PASS: 70k cells, DRC/LVS clean, hold met; setup NOT MET (2 clocks) | ❌ TIMEOUT (under diagnosis, heartbeat on) |
+| axi4_to_dfi_ddr (#26) | ✅ | ✅ dry run; publish blocked until T0 | ✅ PASS: 70k cells, DRC/LVS clean, hold met; setup NOT MET (2 clocks) | ✅ PASS (after TB input-drive fix + 100 ps unit delay) |
 | cxl_lpddr5x_bridge (#20) | ✅ | ✅ dry run; blocked until T0 | ✅ PASS after the hold remedy: 34k cells, hold met (max_ss 0.000 ns) | ✅ (generic GLS also closes now: it was a TB race) |
 | tilelink_to_AXI4 (#19) | ✅ | ✅ dry run (Scala + emitted SV); blocked until T0 | ✅ 3 tops PASS; Fmax tt 362/167/150 MHz | n/a (C++ Verilator TBs vs sky130 UDP models) |
 | ucie_rdi_to_pcie6_pipe7 (private) | ☐ | ☐ | ☐ | ☐ — blocked: T6/T7 not yet adopted, Actions minutes exhausted |
