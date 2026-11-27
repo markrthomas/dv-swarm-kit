@@ -75,6 +75,15 @@ criterion to T5, not the finish line. A gate passes only with a real **artifact*
   `pnr/silicon.yml` (Docker; `--dockerized` needs a TTY, so `run_pnr.sh` wraps it in
   `script`). **SDC portability:** OpenSTA has no `remove_from_collection` (PrimeTime does) —
   branch on `[info commands remove_from_collection]` and fall back to `delete_from_list`.
+  **Hold vs placeholder clocks:** when setup is badly violated against a placeholder clock,
+  LibreLane's hold repair refuses buffers that worsen setup and can stop short of its margin,
+  and routing then erodes what is left. Seen on cxl_lpddr5x_bridge: +0.045 ns post-CTS became
+  −0.078 ns at ss. The remedy keeps the hold checker on all corners:
+  `PL_RESIZER_ALLOW_SETUP_VIOS`, `RUN_POST_GRT_RESIZER_TIMING` and
+  `GRT_RESIZER_ALLOW_SETUP_VIOS` = true. Hold is frequency-independent; setup is the owner's
+  budget. **Multi-clock:** the report gives worst WNS per corner and no single Fmax.
+  **Multi-TB / params:** post-route GLS FAILs a TB whose parameter override differs from what
+  was routed (`SYNTH_PARAMETERS` → `GLS_NETLIST_PARAMS`).
 - **`syn/SIGNOFF.md`** — the per-repo T0–T7 checklist (`SIGNOFF.md` template here).
 
 ## Tooling reality
