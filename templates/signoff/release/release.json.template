@@ -1,0 +1,20 @@
+{
+  "//": "Per-repo release manifest for scripts/make_release.py (kit templates/signoff/release/). Copy to pkg/release.json.",
+  "name": "<ip-name>",
+  "repo": "markrthomas/<repo>",
+  "contract_tag": "contract-v1.0",
+  "contract_doc": "doc/design_contract.md",
+  "report_glob": "syn/**/reports/*",
+  "required_kinds": ["rtl", "ip-xact", "contract", "signoff"],
+  "deliverables": [
+    {"path": "src/<top>.v",            "kind": "rtl"},
+    {"path": "pkg/ip-xact/<top>.xml",  "kind": "ip-xact"},
+    {"path": "pkg/INTEGRATION.md",     "kind": "doc"},
+    {"path": "pkg/RELEASE.md",         "kind": "doc"},
+    {"path": "doc/design_contract.md", "kind": "contract"},
+    {"path": "syn/SIGNOFF.md",         "kind": "signoff"},
+    {"path": "syn/constraints/<block>.sdc", "kind": "constraints"},
+    {"path": "README.md",              "kind": "doc"},
+    {"path": "LICENSE",                "kind": "license"}
+  ]
+}

@@ -30,11 +30,15 @@ criterion to T5, not the finish line. A gate passes only with a real **artifact*
   inventory (flop/scan-chain count, reset controllability, async set/reset, RAM/MBIST).
   Set `TOPS`/`RTL`/`FRONTEND`. Scan insertion + ATPG = needs-license (`dft/DFT_PLAN.md`).
 - **`make gls`** — T6 **zero-delay gate-level sim** (`gls/gls.sh`): each top synthesizes to
-  a generic-gate netlist that the block's own **self-checking directed TB** drives clean
-  (Yosys `simcells`/`simlib` models + iverilog) — catches synth/sim mismatch + X-prop the
+  a generic-gate netlist that the block's own **self-checking TB(s)** drive clean. `TB_<top>`
+  takes a space-separated list and all must pass — **include the protocol-compliance bench**
+  (on IP-axi-to-2apbs only it caught a pre-fix AW/AR deadlock at gate level). The same script
+  has an **external-netlist mode** (`GLS_NETLIST_DIR`/`GLS_CELL_MODELS`) for post-route GLS of
+  an open-PDK netlist (see `pnr/`); there a missing tool FAILs instead of skipping.
+  Generic mode uses Yosys `simcells`/`simlib` + iverilog; catches synth/sim mismatch + X-prop the
   RTL sim can't. Set `TOPS`/`RTL`/`FRONTEND`/`TB_<top>`. Needs a Verilog/SV directed TB; a
   cocotb/UVM/C++-Verilator-only block uses the Verilator-netlist recipe instead (tag
-  honestly, never a pass). SDF-timing GLS + Liberty map = needs-pdk (`gls/T6_PLAN.md`).
+  honestly, never a pass). SDF-timing GLS = separate step (`gls/T6_PLAN.md`).
 - **`make ppa`** — T6 **PPA proxy** (`ppa/ppa.sh`): technology-independent area proxy (cells
   + flops) and timing proxy (`ltp` logic depth) per top; a tracked baseline that moves with
   the real post-PDK numbers. Real area/power/timing = needs-pdk (`ppa/PPA_PLAN.md`).
@@ -43,6 +47,34 @@ criterion to T5, not the finish line. A gate passes only with a real **artifact*
   on drift). IP-XACT (1685-2014) components live in `pkg/ip-xact/<top>.xml`; the integration
   guide + config matrix + address/register map in `pkg/INTEGRATION.md`. Full XSD validation:
   `IPXACT_XSD=… make pkg`. Set `TOPS`/`RTL`/`XML_DIR`.
+- **`make pkg-xsd`** — T7 **full XSD validation** (`pkg/pkg-xsd.mk` + `pkg/fetch_ipxact_xsd.py`
+  + `pkg/ip-xact/schema/ieee-1685-2014.sha256`): fetches the IEEE 1685-2014 schema from
+  Accellera → eda.org → a pinned GitHub copy (`edaa-org/IPXACT-Schema` @ `3c68329`), checks
+  every file against the pinned SHA-256s (a real schema with a wrong hash is a hard FAIL,
+  never a silent fallback), stores the files unmodified (the Accellera notice allows copying
+  "WITHOUT modifications"), and validates each `<top>.xml`. Strict by default; PR CI may set
+  `XSD_HOST_OPTIONAL=1` to report "XSD NOT RUN" during a host outage. Release runs are strict.
+- **`make release`** — T7 **versioned release bundle** (`release/make_release.py`, per-repo
+  `pkg/release.json` from `release/release.json.template`): deterministic tarball of the
+  deliverables + every gate report present, with `MANIFEST.json` (SHA-256 per file, commit,
+  contract tag/version, T0–T7 status from `syn/SIGNOFF.md`, tool versions); `--verify`
+  re-checks a bundle. **`release/release.yml`**: push a `vX.Y.Z` tag on a green `main`
+  commit → CI pre-flights (on main, CI green, notes match), requires every gate tool
+  (a skip is not a pass), re-runs `RELEASE_GATES`, builds + verifies, publishes the GitHub
+  release. Procedure: `release/RELEASE.md`.
+- **`make pnr` / `make gls-sky130`** — T2/T6 **open-PDK silicon run** (`pnr/`): LibreLane
+  (the OpenLane successor, 3.x) Classic flow on sky130A / sky130_fd_sc_hd per top
+  (`pnr/config.json.template` → `syn/pnr/<top>/config.json`): synth, floorplan, PDN, place,
+  CTS, route, extraction, 9-corner STA against the repo SDC, DRC (router/Magic/KLayout), LVS,
+  antenna; `pnr/summarize.py` → `syn/pnr/reports/<top>.pnr.rpt` (area, power, setup/hold
+  WNS/TNS + Fmax per corner). **FAIL** on an incomplete flow, missing GDS, any DRC/LVS error
+  or any hold violation; setup is reported (Fmax) and gated only with `PNR_SETUP_GATE=1`
+  (LibreLane's own setup checker is pointed at no corner with `SETUP_VIOLATION_CORNERS: [""]`
+  — an empty list falls back to the PDK default). `pnr/gls_sky130.sh` then runs the GLS TBs on
+  the routed netlist with the sky130 cell models (functional, unit delay). CI:
+  `pnr/silicon.yml` (Docker; `--dockerized` needs a TTY, so `run_pnr.sh` wraps it in
+  `script`). **SDC portability:** OpenSTA has no `remove_from_collection` (PrimeTime does) —
+  branch on `[info commands remove_from_collection]` and fall back to `delete_from_list`.
 - **`syn/SIGNOFF.md`** — the per-repo T0–T7 checklist (`SIGNOFF.md` template here).
 
 ## Tooling reality
@@ -93,6 +125,15 @@ some blocks, controlled interface specs) — authored here, run where that acces
 > file and a spurious "`<top>` is not a valid top-level module". The template also
 > auto-detects slang whether **integrated** (Yosys ≥ 0.67 native `read_slang`) or a
 > **plugin**. Both behaviours are built into `templates/signoff/synth.sh`.
+
+### T6-sky130 / T7-release adoption (2026-11-27)
+| repo | `make pkg-xsd` | `make release` + `release.yml` | `make pnr` (sky130) | post-route GLS |
+|------|:--:|:--:|:--:|:--:|
+| IP-axi-to-2apbs (pathfinder) | ✅ | ✅ **v1.0.0** released by CI | ✅ 2 tops, DRC/LVS clean, hold met, setup NOT MET @200 MHz (Fmax tt 189/181) | ✅ directed + compliance |
+| axi4_to_dfi_ddr | ☐ | ☐ | ☐ | ☐ |
+| cxl_lpddr5x_bridge | ☐ | ☐ | ☐ | ☐ |
+| tilelink_to_AXI4 | ☐ | ☐ | ☐ | ☐ |
+| ucie_rdi_to_pcie6_pipe7 (private) | ☐ | ☐ | ☐ (billed minutes: dispatch-only) | ☐ |
 
 > Not yet wired into `sync.sh` automated vendoring — a deliberate later rollout, after the
 > five pilot repos' sign-off PRs land.

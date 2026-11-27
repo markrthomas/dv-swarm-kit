@@ -1,0 +1,14 @@
+{
+  "//": "LibreLane config for <TOP> on sky130A / sky130_fd_sc_hd. Copy to syn/pnr/<TOP>/config.json. Multi-clock: set CLOCK_PORT to the main clock; the SDC declares the rest.",
+  "PDK": "sky130A",
+  "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
+  "DESIGN_NAME": "<TOP>",
+  "VERILOG_FILES": ["dir::../../../src/<TOP>.v"],
+  "CLOCK_PORT": "<clk>",
+  "CLOCK_PERIOD": 10.0,
+  "PNR_SDC_FILE": "dir::../../constraints/<block>.sdc",
+  "SIGNOFF_SDC_FILE": "dir::../../constraints/<block>.sdc",
+  "FP_CORE_UTIL": 40,
+  "//setup": "[\"\"] = LibreLane's setup checker matches no corner ([] would fall back to the PDK default *tt*); summarize.py reports setup + Fmax (PNR_SETUP_GATE=1 makes it fail). LibreLane's hold checker stays on (all corners).",
+  "SETUP_VIOLATION_CORNERS": [""]
+}
