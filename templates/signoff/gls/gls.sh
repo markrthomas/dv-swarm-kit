@@ -52,7 +52,7 @@ RTL_INCDIR="${RTL_INCDIR:-}"
 TB_INCDIR="${TB_INCDIR:-test}"
 TB_EXTRA="${TB_EXTRA:-}"
 EXT=0; [ -n "${GLS_NETLIST_DIR:-}" ] && EXT=1
-OUT="${OUT:-syn/gls/reports}"; BUILD="${BUILD:-syn/gls/build$([ $EXT -eq 1 ] && echo -ext)}"
+OUT="${OUT:-syn/gls/reports}"; BUILD="${BUILD:-syn/gls/build$([ $EXT -eq 1 ] && echo -ext || true)}"
 mkdir -p "$OUT" "$BUILD"
 # Space-join: a newline-separated list (e.g. $(ls …)) is split by the yosys -p parser.
 RTL="$(printf '%s ' $RTL)"

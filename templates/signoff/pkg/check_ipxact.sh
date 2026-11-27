@@ -54,7 +54,7 @@ for TOP in $TOPS; do
   if [ -n "$miss" ]; then echo "[PKG] $TOP: FAIL — missing IP-XACT elements:$miss"; rc=1; continue; fi
 
   # 3) RTL-in-sync — model ports (XML) must equal RTL module ports
-  xml_ports="$(grep -oE '<ipxact:port><ipxact:name>[A-Za-z0-9_]+' "$xml" | sed -E 's|.*<ipxact:name>||' | sort -u)"
+  xml_ports="$(grep -oE '<ipxact:port><ipxact:name>[A-Za-z0-9_]+' "$xml" | sed -E 's|.*<ipxact:name>||' | sort -u || true)"
   rtl_ports="$(awk -v top="$TOP" '
       $0 ~ "^[ \t]*module[ \t]+"top"[ \t]*[#(]" {m=1}
       m && /^[ \t]*(input|output|inout)[ \t]/ {

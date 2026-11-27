@@ -23,6 +23,7 @@ on:
       - 'scripts/make_release.py'
       - 'pkg/RELEASE.md'
       - 'pkg/RELEASE_NOTES.md'
+      - 'pkg/release.json'
 
 permissions:
   contents: write   # create the GitHub release (tag runs only)
