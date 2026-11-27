@@ -82,6 +82,13 @@ criterion to T5, not the finish line. A gate passes only with a real **artifact*
   `PL_RESIZER_ALLOW_SETUP_VIOS`, `RUN_POST_GRT_RESIZER_TIMING` and
   `GRT_RESIZER_ALLOW_SETUP_VIOS` = true. Hold is frequency-independent; setup is the owner's
   budget. **Multi-clock:** the report gives worst WNS per corner and no single Fmax.
+  **TB drive/sample discipline (post-route GLS):** the routed netlist clocks every flop
+  through a CTS buffer tree, and in a zero-delay sim each buffer level is another delta cycle.
+  (1) Drive DUT inputs with **non-blocking** assignments. A blocking drive at the clock edge
+  is sampled as the new value and loses handshakes: axi4_to_dfi_ddr hung this way. Reproduce
+  it in RTL by feeding the clocks through ~8 zero-delay `buf`s. (2) Sample DUT outputs at a
+  clock edge or after a settle step, not straight after `wait (valid)`: cxl's generic GLS
+  failed this way. Use `GLS_HEARTBEAT_NS` to tell a hang from slowness.
   **Multi-TB / params:** post-route GLS FAILs a TB whose parameter override differs from what
   was routed (`SYNTH_PARAMETERS` → `GLS_NETLIST_PARAMS`).
 - **`syn/SIGNOFF.md`** — the per-repo T0–T7 checklist (`SIGNOFF.md` template here).
@@ -139,10 +146,10 @@ some blocks, controlled interface specs) — authored here, run where that acces
 | repo | `make pkg-xsd` | `make release` + `release.yml` | `make pnr` (sky130) | post-route GLS |
 |------|:--:|:--:|:--:|:--:|
 | IP-axi-to-2apbs (pathfinder) | ✅ | ✅ **v1.0.0** released by CI | ✅ 2 tops, DRC/LVS clean, hold met, setup NOT MET @200 MHz (Fmax tt 189/181) | ✅ directed + compliance |
-| axi4_to_dfi_ddr | ☐ | ☐ | ☐ | ☐ |
-| cxl_lpddr5x_bridge | ☐ | ☐ | ☐ | ☐ |
-| tilelink_to_AXI4 | ☐ | ☐ | ☐ | ☐ |
-| ucie_rdi_to_pcie6_pipe7 (private) | ☐ | ☐ | ☐ (billed minutes: dispatch-only) | ☐ |
+| axi4_to_dfi_ddr (#26) | ✅ | ✅ dry run; publish blocked until T0 | ✅ PASS: 70k cells, DRC/LVS clean, hold met; setup NOT MET (2 clocks) | ❌ TIMEOUT (under diagnosis, heartbeat on) |
+| cxl_lpddr5x_bridge (#20) | ✅ | ✅ dry run; blocked until T0 | ✅ PASS after the hold remedy: 34k cells, hold met (max_ss 0.000 ns) | ✅ (generic GLS also closes now: it was a TB race) |
+| tilelink_to_AXI4 (#19) | ✅ | ✅ dry run (Scala + emitted SV); blocked until T0 | ✅ 3 tops PASS; Fmax tt 362/167/150 MHz | n/a (C++ Verilator TBs vs sky130 UDP models) |
+| ucie_rdi_to_pcie6_pipe7 (private) | ☐ | ☐ | ☐ | ☐ — blocked: T6/T7 not yet adopted, Actions minutes exhausted |
 
 > Not yet wired into `sync.sh` automated vendoring — a deliberate later rollout, after the
 > five pilot repos' sign-off PRs land.
