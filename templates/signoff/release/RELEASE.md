@@ -13,7 +13,9 @@ sibling IPs copy.
     version and tag.
   - MINOR: compatible additions (new collateral, new configurations).
   - PATCH: fixes that keep the contract.
-- **Design contract:** its own tag (`contract-v1.0`). Every IP release records the contract
+- **Design contract:** its own tag (`contract-v1.0`). **No release before T0:** the tag-run
+  pre-flight refuses to publish unless `contract_tag` exists and `contract_doc` is present and
+  shipped. PR dry-runs (`make release-check`) still work before T0. Every IP release records the contract
   it implements in `MANIFEST.json`. `v1.0.0` implements contract `1.0`.
 
 ## What a release contains

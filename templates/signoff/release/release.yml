@@ -57,7 +57,7 @@ jobs:
         id: n
         run: echo "name=$(python3 -c 'import json;print(json.load(open("pkg/release.json"))["name"])')" >> "$GITHUB_OUTPUT"
 
-      - name: Pre-flight (tag runs) — on main, CI green, notes match, no existing release
+      - name: Pre-flight (tag runs) — on main, T0 frozen, CI green, notes match, no existing release
         if: steps.v.outputs.mode == 'publish'
         env:
           VERSION: ${{ steps.v.outputs.version }}
@@ -70,6 +70,14 @@ jobs:
           NAME=$(python3 -c 'import json;print(json.load(open("pkg/release.json"))["name"])')
           grep -q "^# ${NAME} v${VERSION}\b" pkg/RELEASE_NOTES.md \
             || { echo "::error::pkg/RELEASE_NOTES.md heading is not '${NAME} v${VERSION}'"; exit 1; }
+          # T0 must be frozen: the contract tag (pkg/release.json contract_tag) and the
+          # contract doc must exist. A block whose spec is still open cannot be released.
+          read -r CT CD < <(python3 -c 'import json;c=json.load(open("pkg/release.json"));print(c.get("contract_tag") or "-", c.get("contract_doc") or "-")')
+          git rev-parse -q --verify "refs/tags/${CT}" >/dev/null \
+            || { echo "::error::contract tag '${CT}' not found: T0 spec freeze is not done; not releasing"; exit 1; }
+          [ -f "${CD}" ] || { echo "::error::contract doc '${CD}' missing; not releasing"; exit 1; }
+          grep -q "contract" <(python3 -c 'import json;print(" ".join(d["kind"] for d in json.load(open("pkg/release.json"))["deliverables"]))') \
+            || { echo "::error::pkg/release.json ships no 'contract' deliverable; add the contract doc"; exit 1; }
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             echo "::error::release ${GITHUB_REF_NAME} already exists; delete it or tag a new version"; exit 1
           fi
