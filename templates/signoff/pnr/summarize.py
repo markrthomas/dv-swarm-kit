@@ -18,6 +18,7 @@ A metric that LibreLane did not report is printed as "not reported", never as a 
 """
 import json
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -46,6 +47,15 @@ def main() -> int:
     period = json.loads((ROOT / f"syn/pnr/{top}/config.json").read_text()).get("CLOCK_PERIOD")
 
     cfg = json.loads((ROOT / f"syn/pnr/{top}/config.json").read_text())
+    # Clocks declared in the sign-off SDC. LibreLane's per-corner setup WNS is the worst
+    # over ALL clock groups, so 1/(period - WNS) is an Fmax only for a single-clock block.
+    clocks = []
+    sdc = str(cfg.get("SIGNOFF_SDC_FILE") or cfg.get("PNR_SDC_FILE") or "")
+    if sdc.startswith("dir::"):
+        sdcp = (ROOT / f"syn/pnr/{top}" / sdc[5:]).resolve()
+        if sdcp.is_file():
+            clocks = re.findall(r"^\s*create_clock\b.*?-name\s+(\S+)", sdcp.read_text(), re.M)
+    multi = len(clocks) > 1
     say(f"# P&R summary: {top}  (LibreLane Classic flow, {cfg.get('PDK','?')} / {cfg.get('STD_CELL_LIBRARY','?')})")
     say(f"run dir            : {run.relative_to(ROOT) if run.is_relative_to(ROOT) else run}")
     say(f"LibreLane exit code: {rc}")
@@ -70,7 +80,13 @@ def main() -> int:
         say(f"{label:<10} (W)        : {fmt(g(k), nd=6)}")
 
     say("")
-    say(f"## Timing (clock ACLK, period {period} ns = {1000/period:.1f} MHz target)" if period else "## Timing")
+    clk = cfg.get("CLOCK_PORT", "?")
+    if multi:
+        say(f"## Timing ({len(clocks)} clocks in the SDC: {', '.join(clocks)}; WNS = worst over all clock groups)")
+        say("Fmax is not derived for a multi-clock block (the worst path may be in any domain);"
+            " read the per-clock paths in the stapostpnr reports.")
+    else:
+        say(f"## Timing (clock {clk}, period {period} ns = {1000/period:.1f} MHz target)" if period else "## Timing")
     corners = sorted({k.split("corner:", 1)[1] for k in m if k.startswith("timing__setup__ws__corner:")})
     hold_bad, setup_bad = [], []
     if not corners:
@@ -80,8 +96,8 @@ def main() -> int:
     for c in corners:
         sws, stns = g(f"timing__setup__ws__corner:{c}"), g(f"timing__setup__tns__corner:{c}")
         hws, htns = g(f"timing__hold__ws__corner:{c}"), g(f"timing__hold__tns__corner:{c}")
-        fmax = (1000.0 / (period - sws)) if (period and sws is not None and period - sws > 0) else None
-        say(f"{c:<24} {fmt(sws):>10} {fmt(stns):>10} {fmt(hws):>10} {fmt(htns):>10} {fmt(fmax, nd=1):>9}")
+        fmax = (1000.0 / (period - sws)) if (not multi and period and sws is not None and period - sws > 0) else None
+        say(f"{c:<24} {fmt(sws):>10} {fmt(stns):>10} {fmt(hws):>10} {fmt(htns):>10} {('n/a' if multi else fmt(fmax, nd=1)):>9}")
         if hws is not None and hws < 0:
             hold_bad.append(c)
         if sws is not None and sws < 0:
@@ -118,12 +134,15 @@ def main() -> int:
         fails.append(f"setup violated at {', '.join(c for c, _ in setup_bad)} (PNR_SETUP_GATE=1)")
     if setup_bad:
         worst = min(f for _, f in setup_bad if f) if any(f for _, f in setup_bad) else None
-        msg = (f"SETUP NOT MET at {period} ns ({1000/period:.0f} MHz) on "
-               f"{', '.join(c for c, _ in setup_bad)}; slowest-corner Fmax ~ {fmt(worst, nd=1)} MHz. "
-               ("Gated (PNR_SETUP_GATE=1)." if setup_gate else "Reported, not gated (PNR_SETUP_GATE=0): the clock budget is the owner's call."))
+        target = (f"the SDC clocks ({', '.join(clocks)})" if multi
+                  else f"{period} ns ({1000/period:.0f} MHz)")
+        fm = "" if multi else f"; slowest-corner Fmax ~ {fmt(worst, nd=1)} MHz"
+        msg = (f"SETUP NOT MET at {target} on "
+               f"{', '.join(c for c, _ in setup_bad)}{fm}. "
+               + ("Gated (PNR_SETUP_GATE=1)." if setup_gate else "Reported, not gated (PNR_SETUP_GATE=0): the clock budget is the owner's call."))
         warns.append(msg)
     elif corners:
-        say(f"setup: MET at {period} ns on all {len(corners)} corners")
+        say(f"setup: MET at {('the SDC clocks' if multi else f'{period} ns')} on all {len(corners)} corners")
     for w in warns:
         say(f"WARNING: {w}")
     for f in fails:

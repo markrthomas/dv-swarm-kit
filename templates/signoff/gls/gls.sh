@@ -40,6 +40,8 @@
 #   OUT/BUILD   report / build dirs (default syn/gls/reports, syn/gls/build)
 #   External-netlist mode (all optional; GLS_NETLIST_DIR switches it on):
 #   GLS_NETLIST_DIR  dir holding <top>.nl.v (e.g. LibreLane runs/<tag>/final/nl)
+#   GLS_NETLIST_PARAMS "NAME=VAL …" the netlist was built at (beyond the RTL defaults);
+#                    a TB integer override that differs from the built value FAILs.
 #   GLS_CELL_MODELS  cell model files (e.g. sky130_fd_sc_hd primitives.v + cell .v)
 #   GLS_DEFINES      iverilog defines (e.g. "-DFUNCTIONAL -DUNIT_DELAY=#1")
 #   GLS_LABEL        netlist description for the report
@@ -92,6 +94,21 @@ fi
 tb_incs=""; for d in $TB_INCDIR; do tb_incs="$tb_incs -I$d"; done
 
 rc=0
+# TB integer parameter overrides for $TOP, one NAME=VALUE per line (shared by both modes).
+tb_overrides() {  # $1 = TB file
+  awk -v top="$TOP" '
+      $0 ~ "^[ \t]*"top"[ \t]*#\\(" {m=1}
+      m {
+        s=$0;
+        while (match(s,/\.[A-Za-z_][A-Za-z0-9_]*[ \t]*\([ \t]*[0-9][0-9_]*('"'"'[bdhBDH][0-9a-fA-F_]+)?[ \t]*\)/)) {
+          t=substr(s,RSTART,RLENGTH); sub(/^\./,"",t);
+          sub(/[ \t]*\([ \t]*/,"=",t); gsub(/[ \t)]/,"",t);
+          print t; s=substr(s,RSTART+RLENGTH)
+        }
+      }
+      m && /\)[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/ {exit}
+  ' "$1"
+}
 for TOP in $TOPS; do
   echo "[GLS] === $TOP ($LABEL) ==="
   tbv="TB_${TOP//[^A-Za-z0-9_]/_}"; firstinc="${TB_INCDIR%% *}"
@@ -116,18 +133,7 @@ for TOP in $TOPS; do
   chp=""
   while IFS='=' read -r nm vl; do
     [ -n "$nm" ] && chp="$chp chparam -set $nm $vl $TOP;"
-  done < <(awk -v top="$TOP" '
-      $0 ~ "^[ \t]*"top"[ \t]*#\\(" {m=1}
-      m {
-        s=$0;
-        while (match(s,/\.[A-Za-z_][A-Za-z0-9_]*[ \t]*\([ \t]*[0-9][0-9_]*('"'"'[bdhBDH][0-9a-fA-F_]+)?[ \t]*\)/)) {
-          t=substr(s,RSTART,RLENGTH); sub(/^\./,"",t);
-          sub(/[ \t]*\([ \t]*/,"=",t); gsub(/[ \t)]/,"",t);
-          print t; s=substr(s,RSTART+RLENGTH)
-        }
-      }
-      m && /\)[ \t]*[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/ {exit}
-  ' "$tb")
+  done < <(tb_overrides "$tb")
   gcv="GLS_CHPARAM_${TOP//[^A-Za-z0-9_]/_}"
   for kv in ${!gcv:-}; do nm="${kv%%=*}"; vl="${kv#*=}"; [ -n "$nm" ] && chp="$chp chparam -set $nm $vl $TOP;"; done
 
@@ -175,6 +181,28 @@ for TOP in $TOPS; do
     ' "$net" > "$netp"
   else
     cp "$net" "$netp"
+  fi
+
+  # 2b) external netlist: its parameters were fixed when it was built (RTL defaults plus
+  #     GLS_NETLIST_PARAMS="NAME=VAL …", e.g. LibreLane SYNTH_PARAMETERS). The shim above
+  #     makes a TB override legal but INERT, so a TB override that differs from the built
+  #     value would silently test different hardware: FAIL instead. Values are compared as
+  #     plain integer literals (sized literals / expressions are compared as text).
+  if [ $EXT -eq 1 ]; then
+    pm=0
+    for t in $tbs; do
+      while IFS='=' read -r nm vl; do
+        [ -n "$nm" ] || continue
+        built=""
+        for kv in ${GLS_NETLIST_PARAMS:-}; do [ "${kv%%=*}" = "$nm" ] && built="${kv#*=}"; done
+        [ -n "$built" ] || built="$(awk -v n="$nm" '$0 ~ "(^|[ \t])"n"[ \t]*=" { s=$0; sub(/^[^=]*=[ \t]*/,"",s); print s; exit }' "$decls")"
+        [ "${built//_/}" = "${vl//_/}" ] && continue
+        echo "[GLS] $TOP: FAIL — $(basename "$t") overrides $nm=$vl but the netlist was built at $nm=${built:-<unknown>}" \
+             "(rebuild it at the TB value, e.g. LibreLane SYNTH_PARAMETERS + GLS_NETLIST_PARAMS)"
+        pm=1
+      done < <(tb_overrides "$t")
+    done
+    [ $pm -eq 0 ] || { rc=1; continue; }
   fi
 
   # 3) compile + run each self-checking TB (+ any non-synth checkers/BFMs it

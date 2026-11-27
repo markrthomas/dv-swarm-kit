@@ -32,10 +32,16 @@ V="$PDK_DIR/libs.ref/sky130_fd_sc_hd/verilog"
   echo "[GLS] FAIL — sky130_fd_sc_hd Verilog models not found (looked in '$V')"; exit 1; }
 echo "[GLS] sky130 cell models: $V"
 
+# Parameters the netlist was synthesized at (LibreLane SYNTH_PARAMETERS) — gls.sh FAILs a
+# TB whose integer override differs from what was actually built.
+NLP=""
+[ -f "$RES" ] && NLP="$(python3 -c 'import json,sys; print(" ".join(json.load(open(sys.argv[1])).get("SYNTH_PARAMETERS") or []))' "$RES" 2>/dev/null || true)"
+[ -n "$NLP" ] && echo "[GLS] netlist built at SYNTH_PARAMETERS: $NLP"
+
 [ -f "$ROOT/syn/signoff.env" ] && { set -a; . "$ROOT/syn/signoff.env"; set +a; }
 cd "$ROOT"
 TOPS="$TOP" RTL="${RTL:-src/$TOP.v}" OUT="$ROOT/syn/pnr/reports" \
-GLS_NETLIST_DIR="$NL" \
+GLS_NETLIST_DIR="$NL" GLS_NETLIST_PARAMS="$NLP" \
 GLS_CELL_MODELS="$V/primitives.v $V/sky130_fd_sc_hd.v" \
 GLS_DEFINES="-DFUNCTIONAL -DUNIT_DELAY=#1" \
 GLS_LABEL="sky130_fd_sc_hd routed netlist (LibreLane final/nl, functional, unit delay)" \
