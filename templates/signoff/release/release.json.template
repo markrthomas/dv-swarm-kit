@@ -5,16 +5,49 @@
   "contract_tag": "contract-v1.0",
   "contract_doc": "doc/design_contract.md",
   "report_glob": "syn/**/reports/*",
-  "required_kinds": ["rtl", "ip-xact", "contract", "signoff"],
+  "required_kinds": [
+    "rtl",
+    "ip-xact",
+    "contract",
+    "signoff"
+  ],
   "deliverables": [
-    {"path": "src/<top>.v",            "kind": "rtl"},
-    {"path": "pkg/ip-xact/<top>.xml",  "kind": "ip-xact"},
-    {"path": "pkg/INTEGRATION.md",     "kind": "doc"},
-    {"path": "pkg/RELEASE.md",         "kind": "doc"},
-    {"path": "doc/design_contract.md", "kind": "contract"},
-    {"path": "syn/SIGNOFF.md",         "kind": "signoff"},
-    {"path": "syn/constraints/<block>.sdc", "kind": "constraints"},
-    {"path": "README.md",              "kind": "doc"},
-    {"path": "LICENSE",                "kind": "license"}
-  ]
+    {
+      "path": "src/<top>.v",
+      "kind": "rtl"
+    },
+    {
+      "path": "pkg/ip-xact/<top>.xml",
+      "kind": "ip-xact"
+    },
+    {
+      "path": "pkg/INTEGRATION.md",
+      "kind": "doc"
+    },
+    {
+      "path": "pkg/RELEASE.md",
+      "kind": "doc"
+    },
+    {
+      "path": "doc/design_contract.md",
+      "kind": "contract"
+    },
+    {
+      "path": "syn/SIGNOFF.md",
+      "kind": "signoff"
+    },
+    {
+      "path": "syn/constraints/<block>.sdc",
+      "kind": "constraints"
+    },
+    {
+      "path": "README.md",
+      "kind": "doc"
+    },
+    {
+      "path": "LICENSE",
+      "kind": "license"
+    }
+  ],
+  "//deliverables": "Entry forms: {path,kind} = tracked file; {glob,kind} = every TRACKED file matching a git glob (e.g. Chisel sources 'src/main/scala/**/*.scala'; empty = FAIL); {path,kind,generated_by} = build output such as Chisel-emitted SV (may be untracked, must exist; the release gates must produce it; the command is recorded in MANIFEST.json)."
 }

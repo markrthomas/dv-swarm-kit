@@ -84,3 +84,11 @@ locally: `make release VERSION=x.y.z` and `make release-verify VERSION=x.y.z`. C
 This is the OSS, no-PDK release. A bundle contains the generated gate reports so that each
 sign-off row has an archived artifact. Items that need a PDK or a licensed tool are tagged
 in `syn/SIGNOFF.md`; they are not part of this release.
+
+## Generated RTL (Chisel and other generators)
+
+When the integrable RTL is emitted by a generator, list it in `pkg/release.json` as
+`{"path": "generated/<top>.sv", "kind": "rtl", "generated_by": "make elab"}`. It may be
+untracked, but it must exist, so the release gates must produce it. Ship the source through a
+tracked glob: `{"glob": "src/main/scala/**/*.scala", "kind": "rtl-src"}`. `MANIFEST.json` records
+each generated file's command next to its SHA-256.

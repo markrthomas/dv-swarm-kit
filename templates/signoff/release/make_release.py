@@ -37,7 +37,13 @@ CFG = json.loads(CFG_FILE.read_text()) if CFG_FILE.is_file() else None
 if CFG is None:
     sys.exit("[REL] FAIL: pkg/release.json not found (copy release.json.template from the kit)")
 NAME = CFG["name"]
-DELIVERABLES = [(d["path"], d["kind"]) for d in CFG["deliverables"]]
+# Deliverable entries (pkg/release.json):
+#   {"path": P, "kind": K}                       tracked file
+#   {"glob": G, "kind": K}                       every TRACKED file matching G (git pathspec
+#                                                glob, e.g. "src/main/scala/**/*.scala"); empty = FAIL
+#   {"path": P, "kind": K, "generated_by": CMD}  build output (e.g. Chisel-emitted SV); may be
+#                                                untracked, must exist; CMD is recorded in MANIFEST
+DELIVERABLE_SPECS = CFG["deliverables"]
 REPORT_GLOB = CFG.get("report_glob", "syn/**/reports/*")
 CONTRACT_TAG = CFG.get("contract_tag")
 CONTRACT_DOC = CFG.get("contract_doc", "doc/design_contract.md")
@@ -91,10 +97,21 @@ def build(version: str, out: Path, allow_dirty: bool) -> Path:
     if dirty and not allow_dirty:
         sys.exit("[REL] FAIL: working tree has uncommitted changes (use --allow-dirty for a test build)")
 
+    DELIVERABLES, GENERATED = [], {}
+    for d in DELIVERABLE_SPECS:
+        if "glob" in d:
+            hits = [h for h in git("ls-files", "--", f":(glob){d['glob']}").splitlines() if h]
+            if not hits:
+                sys.exit(f"[REL] FAIL: deliverable glob '{d['glob']}' matches no tracked file")
+            DELIVERABLES += [(h, d["kind"]) for h in sorted(hits)]
+        else:
+            DELIVERABLES.append((d["path"], d["kind"]))
+            if d.get("generated_by"):
+                GENERATED[d["path"]] = d["generated_by"]
     missing = [p for p, _ in DELIVERABLES if not (ROOT / p).is_file()]
     if missing:
         sys.exit("[REL] FAIL: missing deliverables: " + ", ".join(missing))
-    untracked = [p for p, _ in DELIVERABLES
+    untracked = [p for p, _ in DELIVERABLES if p not in GENERATED
                  if subprocess.run(["git", "ls-files", "--error-unmatch", p], cwd=ROOT,
                                    capture_output=True).returncode != 0]
     if untracked:
@@ -111,7 +128,10 @@ def build(version: str, out: Path, allow_dirty: bool) -> Path:
     entries = []
     for path, kind in sorted(files):
         data = (ROOT / path).read_bytes()
-        entries.append({"path": path, "kind": kind, "bytes": len(data), "sha256": sha256(data)})
+        e = {"path": path, "kind": kind, "bytes": len(data), "sha256": sha256(data)}
+        if path in GENERATED:
+            e["generated_by"] = GENERATED[path]
+        entries.append(e)
 
     manifest = {
         "name": NAME,
