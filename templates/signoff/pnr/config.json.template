@@ -20,5 +20,10 @@
   "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
   "DESIGN_REPAIR_MAX_CAP_PCT": 40,
   "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
-  "GRT_DESIGN_REPAIR_MAX_CAP_PCT": 40
+  "GRT_DESIGN_REPAIR_MAX_CAP_PCT": 40,
+  "//hold": "With post-GRT design repair on, max_ss hold went from +0.136 to -0.031 ns (the extra post-route buffering eroded it; same pattern as cxl). Hold recipe from cxl: hold repair may worsen setup (setup misses come from the placeholder clocks), hold repair is re-run on post-GRT parasitics, and the post-GRT hold target is 0.15 ns. The hold checker stays on all corners.",
+  "PL_RESIZER_ALLOW_SETUP_VIOS": true,
+  "RUN_POST_GRT_RESIZER_TIMING": true,
+  "GRT_RESIZER_ALLOW_SETUP_VIOS": true,
+  "GRT_RESIZER_HOLD_SLACK_MARGIN": 0.15
 }
