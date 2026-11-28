@@ -3,12 +3,22 @@
   "PDK": "sky130A",
   "STD_CELL_LIBRARY": "sky130_fd_sc_hd",
   "DESIGN_NAME": "<TOP>",
-  "VERILOG_FILES": ["dir::../../../src/<TOP>.v"],
+  "VERILOG_FILES": [
+    "dir::../../../src/<TOP>.v"
+  ],
   "CLOCK_PORT": "<clk>",
   "CLOCK_PERIOD": 10.0,
   "PNR_SDC_FILE": "dir::../../constraints/<block>.sdc",
   "SIGNOFF_SDC_FILE": "dir::../../constraints/<block>.sdc",
   "FP_CORE_UTIL": 40,
   "//setup": "[\"\"] = LibreLane's setup checker matches no corner ([] would fall back to the PDK default *tt*); summarize.py reports setup + Fmax (PNR_SETUP_GATE=1 makes it fail). LibreLane's hold checker stays on (all corners).",
-  "SETUP_VIOLATION_CORNERS": [""]
+  "SETUP_VIOLATION_CORNERS": [
+    ""
+  ],
+  "//elec": "Electrical repair, from the rollout: pre-route repair works on estimated parasitics and sign-off STA on detailed-route RCX, so the default margins (20 % / 10 %) left max-slew/cap violations at ss. Post-GRT repair plus 40 % margins took 4 tops from 22/1, 367/7, 75/3, 500/14 to 0/0, 11/1, 0/0, 33/1 at unchanged Fmax. RUN_POST_GRT_DESIGN_REPAIR is experimental in LibreLane; the job timeout bounds a hang.",
+  "RUN_POST_GRT_DESIGN_REPAIR": true,
+  "DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+  "DESIGN_REPAIR_MAX_CAP_PCT": 40,
+  "GRT_DESIGN_REPAIR_MAX_SLEW_PCT": 40,
+  "GRT_DESIGN_REPAIR_MAX_CAP_PCT": 40
 }

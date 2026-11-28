@@ -81,7 +81,12 @@ criterion to T5, not the finish line. A gate passes only with a real **artifact*
   −0.078 ns at ss. The remedy keeps the hold checker on all corners:
   `PL_RESIZER_ALLOW_SETUP_VIOS`, `RUN_POST_GRT_RESIZER_TIMING` and
   `GRT_RESIZER_ALLOW_SETUP_VIOS` = true. Hold is frequency-independent; setup is the owner's
-  budget. **Multi-clock:** the report gives worst WNS per corner and no single Fmax.
+  budget. If routing still erodes hold, raise `GRT_RESIZER_HOLD_SLACK_MARGIN` (cxl: 0.15 ns took
+  max_ss from 0.000 to +0.077 ns). **Electrical (max-slew/cap):** pre-route repair sees
+  estimated parasitics, while sign-off sees detailed-route RCX. The template turns on post-GRT
+  design repair with 40 % margins: on 4 tops the violations went 22/1, 367/7, 75/3, 500/14 →
+  0/0, 11/1, 0/0, 33/1 at unchanged Fmax. Post-GRT repair at the default 10 % alone did nothing
+  (dfi 695 → 722). **Multi-clock:** the report gives worst WNS per corner and no single Fmax.
   **TB drive/sample discipline (post-route GLS):** the routed netlist clocks every flop
   through a CTS buffer tree, and in a zero-delay sim each buffer level is another delta cycle.
   (1) Drive DUT inputs with **non-blocking** assignments. A blocking drive at the clock edge
