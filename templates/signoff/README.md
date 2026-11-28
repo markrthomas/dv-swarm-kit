@@ -86,7 +86,9 @@ criterion to T5, not the finish line. A gate passes only with a real **artifact*
   estimated parasitics, while sign-off sees detailed-route RCX. The template turns on post-GRT
   design repair with 40 % margins: on 4 tops the violations went 22/1, 367/7, 75/3, 500/14 →
   0/0, 11/1, 0/0, 33/1 at unchanged Fmax. Post-GRT repair at the default 10 % alone did nothing
-  (dfi 695 → 722). **Multi-clock:** the report gives worst WNS per corner and no single Fmax.
+  (dfi 695 → 722). The cost is a few more buffers: on a top that already routes near its
+  congestion limit (IP-axi-to-2apbs burst, overflowed tiles at placement) global routing can fail
+  (GRT-0116). Lower `FP_CORE_UTIL` (40 → 35); don't allow congestion through. **Multi-clock:** the report gives worst WNS per corner and no single Fmax.
   **TB drive/sample discipline (post-route GLS):** the routed netlist clocks every flop
   through a CTS buffer tree, and in a zero-delay sim each buffer level is another delta cycle.
   (1) Drive DUT inputs with **non-blocking** assignments. A blocking drive at the clock edge
